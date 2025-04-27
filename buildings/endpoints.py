@@ -16,6 +16,7 @@ router = APIRouter()
 # Model to define the structure of the building request payload
 class BuildingRequest(BaseModel):
     name: str
+    type: str  # Added type for building
     planet_id: UUID  # Changed to UUID
     level: int = None  # This will be automatically determined
 
@@ -23,6 +24,7 @@ class BuildingRequest(BaseModel):
 class Building(BaseModel):
     id: UUID
     name: str
+    type: str  # Added type for building
     planet_id: UUID  # Changed to UUID
     level: int
 
@@ -72,12 +74,12 @@ def create_building(building_request: BuildingRequest, current_user: TokenData =
             level = max_level + 1 if max_level else 1
             print(f"[CREATE] New building level: {level}")
 
-            # Insert the new building record
-            print(f"[DB] Inserting new building with ID {building_id}, Name: {building_request.name}, Level: {level}")
+            # Insert the new building record (added `type`)
+            print(f"[DB] Inserting new building with ID {building_id}, Name: {building_request.name}, Level: {level}, Type: {building_request.type}")
             cursor.execute("""
-                INSERT INTO buildings (id, name, planet_id, level)
-                VALUES (%s, %s, %s, %s) RETURNING id;
-            """, (building_id, building_request.name, building_request.planet_id, level))
+                INSERT INTO buildings (id, name, planet_id, level, type)
+                VALUES (%s, %s, %s, %s, %s) RETURNING id;
+            """, (building_id, building_request.name, building_request.planet_id, level, building_request.type))
             conn.commit()
             print(f"[DB] New building created with ID: {building_id}")
     except Exception as e:
@@ -87,7 +89,7 @@ def create_building(building_request: BuildingRequest, current_user: TokenData =
     finally:
         conn.close()
 
-    return Building(id=building_id, name=building_request.name, planet_id=building_request.planet_id, level=level)
+    return Building(id=building_id, name=building_request.name, type=building_request.type, planet_id=building_request.planet_id, level=level)
 
 # Endpoint to get a building by its ID
 @router.get("/{building_id}")
@@ -102,7 +104,7 @@ def get_building(building_id: str, current_user: TokenData = Depends(get_current
         with conn.cursor() as cursor:
             print(f"[DB] Checking if building {building_id} exists for user {current_user.id}")
             cursor.execute("""
-                SELECT b.id, b.name, b.planet_id, b.level
+                SELECT b.id, b.name, b.planet_id, b.level, b.type
                 FROM buildings b
                 JOIN planets p ON b.planet_id = p.id
                 WHERE b.id = %s AND p.user_id = %s
@@ -114,7 +116,7 @@ def get_building(building_id: str, current_user: TokenData = Depends(get_current
 
     if building:
         print(f"[GET] Building {building_id} fetched for user {current_user.id}")
-        return Building(id=building[0], name=building[1], planet_id=building[2], level=building[3])
+        return Building(id=building[0], name=building[1], type=building[4], planet_id=building[2], level=building[3])
 
     raise HTTPException(status_code=404, detail="Building not found or not owned by user")
 
@@ -131,7 +133,7 @@ def get_all_buildings(current_user: TokenData = Depends(get_current_user)):
         with conn.cursor() as cursor:
             print(f"[DB] Fetching all buildings for user {current_user.id}")
             cursor.execute("""
-                SELECT b.id, b.name, b.planet_id, b.level
+                SELECT b.id, b.name, b.planet_id, b.level, b.type
                 FROM buildings b
                 JOIN planets p ON b.planet_id = p.id
                 WHERE p.user_id = %s
@@ -144,7 +146,7 @@ def get_all_buildings(current_user: TokenData = Depends(get_current_user)):
     print(f"[LIST] {len(buildings)} buildings found for user {current_user.id}")
 
     return [
-        Building(id=b[0], name=b[1], planet_id=b[2], level=b[3])
+        Building(id=b[0], name=b[1], type=b[4], planet_id=b[2], level=b[3])
         for b in buildings
     ]
 
