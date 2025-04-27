@@ -24,7 +24,7 @@ def read_users_me(current_user: dict = Depends(get_current_user)):
             "id": str(user[0]),
             "username": user[1],
             "email": user[2],
-            "is_admin": user[3]  # Fixed index from 4 to 3
+            "is_admin": user[4]  # Fixed index from 4 to 3
         }
 
     print("❌ User not found")
