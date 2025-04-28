@@ -43,17 +43,6 @@ Use this API to manage players, battles, planets, buildings, and fleets.
 )
 
 # -----------------------
-# CORS Middleware
-# -----------------------
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production: specify trusted frontend URLs
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# -----------------------
 # Include All Routers
 # -----------------------
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
